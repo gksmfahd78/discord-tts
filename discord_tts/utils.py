@@ -4,57 +4,56 @@ TTS 라이브러리의 유틸리티 함수들
 
 import re
 import discord
-from typing import Optional, Tuple, List, Set, Dict, Union
+from typing import Optional, Tuple, List, Set, Dict, Union, Pattern
 from .exceptions import NoVoiceChannelError
 
 class TextFilter:
     """텍스트 필터링을 위한 클래스"""
     
+    # 기본 정규식 패턴들
+    DEFAULT_PATTERNS = {
+        'korean': r'[가-힣]',  # 한글
+        'english': r'[a-zA-Z]',  # 영문
+        'numbers': r'[0-9]',  # 숫자
+        'spaces': r'\s',  # 공백
+        'special': r'[^\w\s가-힣]',  # 특수문자
+        'url': r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',  # URL
+        'mention': r'<@!?\d+>',  # 멘션
+        'emoji': r'[\U0001F600-\U0001F64F\U0001F300-\U0001F5FF\U0001F680-\U0001F6FF\U0001F1E0-\U0001F1FF\U00002702-\U000027B0\U000024C2-\U0001F251]'  # 이모지
+    }
+    
     def __init__(self, 
-                 remove_special_chars: bool = True,
-                 remove_emojis: bool = True,
-                 remove_urls: bool = True,
-                 remove_mentions: bool = True,
-                 remove_extra_spaces: bool = True,
-                 allowed_chars: Optional[Set[str]] = None,
+                 patterns: Optional[Dict[str, str]] = None,
+                 remove_patterns: Optional[List[str]] = None,
+                 keep_patterns: Optional[List[str]] = None,
                  max_length: Optional[int] = None):
         """
         TextFilter 초기화
         
         Args:
-            remove_special_chars (bool): 특수문자 제거 여부
-            remove_emojis (bool): 이모지 제거 여부
-            remove_urls (bool): URL 제거 여부
-            remove_mentions (bool): 멘션 제거 여부
-            remove_extra_spaces (bool): 연속된 공백 제거 여부
-            allowed_chars (Set[str], optional): 허용할 문자 집합
+            patterns (Dict[str, str], optional): 추가할 정규식 패턴들
+            remove_patterns (List[str], optional): 제거할 패턴 이름들
+            keep_patterns (List[str], optional): 유지할 패턴 이름들
             max_length (int, optional): 최대 텍스트 길이
         """
-        self.remove_special_chars = remove_special_chars
-        self.remove_emojis = remove_emojis
-        self.remove_urls = remove_urls
-        self.remove_mentions = remove_mentions
-        self.remove_extra_spaces = remove_extra_spaces
-        self.allowed_chars = allowed_chars
+        # 기본 패턴과 사용자 정의 패턴 합치기
+        self.patterns = {**self.DEFAULT_PATTERNS, **(patterns or {})}
+        
+        # 제거할 패턴 컴파일
+        self.remove_patterns = []
+        if remove_patterns:
+            for pattern_name in remove_patterns:
+                if pattern_name in self.patterns:
+                    self.remove_patterns.append(re.compile(self.patterns[pattern_name]))
+                    
+        # 유지할 패턴 컴파일
+        self.keep_patterns = []
+        if keep_patterns:
+            for pattern_name in keep_patterns:
+                if pattern_name in self.patterns:
+                    self.keep_patterns.append(re.compile(self.patterns[pattern_name]))
+                    
         self.max_length = max_length
-        
-        # 이모지 패턴
-        self.emoji_pattern = re.compile("["
-            u"\U0001F600-\U0001F64F"  # emoticons
-            u"\U0001F300-\U0001F5FF"  # symbols & pictographs
-            u"\U0001F680-\U0001F6FF"  # transport & map symbols
-            u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
-            u"\U00002702-\U000027B0"
-            u"\U000024C2-\U0001F251"
-            "]+", flags=re.UNICODE)
-            
-        # URL 패턴
-        self.url_pattern = re.compile(
-            r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
-        )
-        
-        # 멘션 패턴
-        self.mention_pattern = re.compile(r'<@!?\d+>')
         
     def clean(self, text: str) -> str:
         """
@@ -69,31 +68,20 @@ class TextFilter:
         if not text:
             return ""
             
-        # URL 제거
-        if self.remove_urls:
-            text = self.url_pattern.sub('', text)
+        # 제거할 패턴 적용
+        for pattern in self.remove_patterns:
+            text = pattern.sub('', text)
             
-        # 멘션 제거
-        if self.remove_mentions:
-            text = self.mention_pattern.sub('', text)
+        # 유지할 패턴이 있는 경우, 해당 패턴과 일치하는 부분만 남김
+        if self.keep_patterns:
+            matches = []
+            for pattern in self.keep_patterns:
+                matches.extend(pattern.findall(text))
+            text = ''.join(matches)
             
-        # 이모지 제거
-        if self.remove_emojis:
-            text = self.emoji_pattern.sub('', text)
-            
-        # 특수문자 제거
-        if self.remove_special_chars:
-            if self.allowed_chars:
-                # 허용된 문자만 남기기
-                text = ''.join(c for c in text if c in self.allowed_chars)
-            else:
-                # 기본 특수문자 제거 (한글, 영문, 숫자, 공백만 남김)
-                text = re.sub(r'[^\w\s가-힣]', '', text)
-                
         # 연속된 공백 제거
-        if self.remove_extra_spaces:
-            text = re.sub(r'\s+', ' ', text)
-            
+        text = re.sub(r'\s+', ' ', text)
+        
         # 앞뒤 공백 제거
         text = text.strip()
         
@@ -104,36 +92,27 @@ class TextFilter:
         return text
 
 def clean_text(text: str, 
-               remove_special_chars: bool = True,
-               remove_emojis: bool = True,
-               remove_urls: bool = True,
-               remove_mentions: bool = True,
-               remove_extra_spaces: bool = True,
-               allowed_chars: Optional[Set[str]] = None,
+               patterns: Optional[Dict[str, str]] = None,
+               remove_patterns: Optional[List[str]] = None,
+               keep_patterns: Optional[List[str]] = None,
                max_length: Optional[int] = None) -> str:
     """
     텍스트를 정제합니다.
     
     Args:
         text (str): 원본 텍스트
-        remove_special_chars (bool): 특수문자 제거 여부
-        remove_emojis (bool): 이모지 제거 여부
-        remove_urls (bool): URL 제거 여부
-        remove_mentions (bool): 멘션 제거 여부
-        remove_extra_spaces (bool): 연속된 공백 제거 여부
-        allowed_chars (Set[str], optional): 허용할 문자 집합
+        patterns (Dict[str, str], optional): 추가할 정규식 패턴들
+        remove_patterns (List[str], optional): 제거할 패턴 이름들
+        keep_patterns (List[str], optional): 유지할 패턴 이름들
         max_length (int, optional): 최대 텍스트 길이
         
     Returns:
         str: 정제된 텍스트
     """
     filter = TextFilter(
-        remove_special_chars=remove_special_chars,
-        remove_emojis=remove_emojis,
-        remove_urls=remove_urls,
-        remove_mentions=remove_mentions,
-        remove_extra_spaces=remove_extra_spaces,
-        allowed_chars=allowed_chars,
+        patterns=patterns,
+        remove_patterns=remove_patterns,
+        keep_patterns=keep_patterns,
         max_length=max_length
     )
     return filter.clean(text)
