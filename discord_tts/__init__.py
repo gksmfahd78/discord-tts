@@ -4,16 +4,28 @@ Discord TTS (Text-to-Speech) 라이브러리
 """
 
 from .core import TTSManager
-from .utils import clean_text, get_voice_channel
-from .exceptions import TTSException, NoVoiceChannelError
+from .utils import clean_text, get_voice_channel, TextFilter
+from .exceptions import (
+    TTSException,
+    NoVoiceChannelError,
+    TTSGenerationError,
+    InvalidTextError,
+    FFmpegNotFoundError,
+    NetworkError
+)
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     'TTSManager',
     'clean_text',
     'get_voice_channel',
+    'TextFilter',
     'TTSException',
     'NoVoiceChannelError',
+    'TTSGenerationError',
+    'InvalidTextError',
+    'FFmpegNotFoundError',
+    'NetworkError',
     '__version__'
 ] 

@@ -16,4 +16,12 @@ class TTSGenerationError(TTSException):
 
 class InvalidTextError(TTSException):
     """유효하지 않은 텍스트가 입력되었을 때 발생하는 예외"""
+    pass
+
+class FFmpegNotFoundError(TTSException):
+    """FFmpeg가 설치되지 않았을 때 발생하는 예외"""
+    pass
+
+class NetworkError(TTSException):
+    """네트워크 오류가 발생했을 때 발생하는 예외"""
     pass 

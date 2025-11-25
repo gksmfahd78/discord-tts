@@ -91,24 +91,28 @@ class TextFilter:
             
         return text
 
-def clean_text(text: str, 
+def clean_text(text: str,
                patterns: Optional[Dict[str, str]] = None,
                remove_patterns: Optional[List[str]] = None,
                keep_patterns: Optional[List[str]] = None,
                max_length: Optional[int] = None) -> str:
     """
     텍스트를 정제합니다.
-    
+
     Args:
         text (str): 원본 텍스트
         patterns (Dict[str, str], optional): 추가할 정규식 패턴들
-        remove_patterns (List[str], optional): 제거할 패턴 이름들
+        remove_patterns (List[str], optional): 제거할 패턴 이름들. None인 경우 기본값으로 ['url', 'mention', 'emoji'] 사용
         keep_patterns (List[str], optional): 유지할 패턴 이름들
         max_length (int, optional): 최대 텍스트 길이
-        
+
     Returns:
         str: 정제된 텍스트
     """
+    # 기본 제거 패턴 설정
+    if remove_patterns is None and keep_patterns is None:
+        remove_patterns = ['url', 'mention', 'emoji']
+
     filter = TextFilter(
         patterns=patterns,
         remove_patterns=remove_patterns,
