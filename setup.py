@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 with open("README.md", encoding="utf-8") as f:
     long_description = f.read()
@@ -10,14 +10,15 @@ setup(
     install_requires=[
         "discord.py>=2.0.0",
         "gTTS>=2.3.1",
-        "PyNaCl>=1.4.0"
+        "PyNaCl>=1.4.0",
     ],
-    author="gksmfahd78",
+    author="Lee Dong Hyun",
     author_email="leedonghyun@kakao.com",
-    description="Discord 봇을 위한 다국어 TTS(Text-to-Speech) 라이브러리",
+    description="Multilingual TTS helper library for Discord bots",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/gksmfahd78/discord-tts",
+    license="MIT",
     classifiers=[
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.8",
@@ -38,4 +39,4 @@ setup(
         "Bug Reports": "https://github.com/gksmfahd78/discord-tts/issues",
         "Source": "https://github.com/gksmfahd78/discord-tts",
     },
-) 
+)
